@@ -43,17 +43,17 @@ class JSONSchemaAgent(UserProxyAgent):
 config_list_gpt4 = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
     filter_dict={
-        "model": ["gpt-4-1106-preview"],
+        "model": ["gpt-4o"],
     },
 )
 
-gpt4_config = {
+gpt4o_config = {
     "cache_seed": 42,
     "temperature": 0.0,
     "config_list": config_list_gpt4,
     "timeout": 600,
 }
-gpt4_json_config = deepcopy(gpt4_config)
+gpt4_json_config = deepcopy(gpt4o_config)
 gpt4_json_config["config_list"][0]["response_format"] = { "type": "json_object" }
 
 def get_corrector_agents():
