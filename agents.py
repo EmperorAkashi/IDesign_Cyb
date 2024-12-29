@@ -26,7 +26,7 @@ config_list_gpt4 = autogen.config_list_from_json(
 config_list_gpt4o = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
     filter_dict = {
-        "model": ["gpt-4o"],
+        "model": ["gpt-4o-mini"],
     }
 )
 
