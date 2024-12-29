@@ -42,7 +42,7 @@ gpt4_config = {
     "cache_seed": 42,
     "temperature": 0.7,
     "top_p" : 1.0,
-    "config_list": config_list_gpt4,
+    "config_list": config_list_gpt4o,
     "timeout": 600,
 }
 
