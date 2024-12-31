@@ -180,7 +180,7 @@ engineer_schema = """
                                         "preposition" : {
                                             "type" : "string",
                                             "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
-                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
+                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under"]
                                         }
                                     },
                                     "required" : ["layout_element_id", "preposition"]

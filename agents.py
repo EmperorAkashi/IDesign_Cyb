@@ -195,6 +195,11 @@ def create_agents(no_of_objects : int):
         IMPORTANT: For object quantities greater than one, the "placement" key gives separately the relative placement of each instance of that object in the room
         make the distinction accordingly!
 
+        CRITICAL REQUIREMENTS:
+        1. EVERY object MUST have at least one room_layout_element in its placement. This defines where the object is in relation to the room (walls, middle, corners).
+        2. If an object is placed relative to another object (in objects_in_room), it still MUST specify its room position in room_layout_elements.
+        3. Never leave room_layout_elements as an empty array - always specify at least one room layout relationship.
+
         Use only the following JSON Schema to save the JSON object:
         {engineer_schema}
 
