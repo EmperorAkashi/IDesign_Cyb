@@ -13,7 +13,12 @@ from agents import is_termination_msg
 
 class JSONSchemaAgent(UserProxyAgent):
     def __init__(self, name : str, is_termination_msg):
-        super().__init__(name, is_termination_msg=is_termination_msg)
+        super().__init__(
+            name, 
+            is_termination_msg=is_termination_msg, 
+            code_execution_config={"use_docker": False},
+            human_input_mode="NEVER"
+        )
 
     def get_human_input(self, prompt: str) -> str:
         message = self.last_message()
@@ -72,7 +77,7 @@ def get_corrector_agents():
 
     spatial_corrector_agent = AssistantAgent(
         name="Spatial_corrector_agent",
-        llm_config=gpt4_config,
+        llm_config=gpt4o_config,
         is_termination_msg=is_termination_msg,
         human_input_mode="NEVER",
         system_message=f"""
@@ -100,4 +105,4 @@ def get_corrector_agents():
         {deletion_schema}
         """
     )
-    return user_proxy, json_schema_debugger, spatial_corrector_agent, object_deletion_agent
+    return user_proxy, spatial_corrector_agent, json_schema_debugger, object_deletion_agent

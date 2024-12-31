@@ -416,7 +416,7 @@ def get_cluster_size(node, G, scene_graph):
             # Find the side of the child object to add to the size constraint
             direction_check = lambda diff, prep: (diff % 180 == 0 and prep in ["left of", "right of"]) or (diff % 90 == 0 and prep in ["in front", "behind"])
             size_constraint_key = "length" if direction_check(rot_diff, prep) else "width"
-            side_to_add = (("left of", "right of"),("in front", "behind"))  if size_constraint_key == "length" else (("in front", "behind"), ("left of", "right of"))
+            side_to_add = ("left of", "right of")  if size_constraint_key == "length" else ("in front", "behind")
 
             # Retrieve the size of the cluster and the additional descendants of the child object
             edge_cluster_size, edge_children = get_cluster_size(edge[1], G, scene_graph)
@@ -512,18 +512,18 @@ def check_size_conflicts(G, scene_graph, user_input, room_priors, verbose=False)
                 print(f"Cluster size for {edge[1]}: {cluster_size}")
                 rot_diff = abs(node_obj_rot - edge_obj_rot)
                 constraint_key = ("length", "width") if rot_diff % 180 == 0 else ("width", "length")
-                side_to_add = (("left of", "right of"),("in front", "behind"))  if constraint_key[0] == "length" else (("in front", "behind"), ("left of", "right of"))
+                side_to_add = ("left of", "right of")  if constraint_key[0] == "length" else (("in front", "behind"), ("left of", "right of"))
 
                 outgoing_set.add(edge[1])
                 outgoing_set = outgoing_set.union(e_children)
                 if node == "middle of the room":
-                    x = edge_obj["size_in_meters"][constraint_key[0]] + cluster_size[side_to_add[0][0]] + cluster_size[side_to_add[0][1]]
+                    x = edge_obj["size_in_meters"][constraint_key[0]] + cluster_size[side_to_add[0]] + cluster_size[side_to_add[0][1]]
                     constraint_x = max(size_constraint[0], x)
-                    y = edge_obj["size_in_meters"][constraint_key[1]] + cluster_size[side_to_add[1][0]] + cluster_size[side_to_add[1][1]]
+                    y = edge_obj["size_in_meters"][constraint_key[1]] + cluster_size[side_to_add[1]] + cluster_size[side_to_add[1][1]]
                     constraint_y = max(size_constraint[1], y)
                     size_constraint = (constraint_x, constraint_y)
                 else:
-                    size_constraint += edge_obj["size_in_meters"][constraint_key[0]] + cluster_size[side_to_add[0][0]] + cluster_size[side_to_add[0][1]]
+                    size_constraint += edge_obj["size_in_meters"][constraint_key[0]] + cluster_size[side_to_add[0]] + cluster_size[side_to_add[1]]
 
             if verbose:
                 print(f"Size constraint for {node}: {size_constraint}!")

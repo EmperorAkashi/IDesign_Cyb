@@ -59,7 +59,7 @@ initial_schema = {
                                             "preposition" : {
                                                 "type" : "string",
                                                 "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
-                                                "enum" : ["on", "in the corner"]
+                                                "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                             }
                                         },
                                         "required" : ["layout_element_id", "preposition"]
@@ -78,7 +78,7 @@ initial_schema = {
                                             "preposition" : {
                                                 "type" : "string",
                                                 "description" : "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1...",
-                                                "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
+                                                "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                             },
                                             "is_adjacent" : {
                                                 "type" : "boolean",
@@ -180,7 +180,7 @@ engineer_schema = """
                                         "preposition" : {
                                             "type" : "string",
                                             "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
-                                            "enum" : ["on", "in the corner"]
+                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                         }
                                     },
                                     "required" : ["layout_element_id", "preposition"]
@@ -199,7 +199,7 @@ engineer_schema = """
                                         "preposition" : {
                                             "type" : "string",
                                             "description" : "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1...",
-                                            "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
+                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                         },
                                         "is_adjacent" : {
                                             "type" : "boolean",
@@ -255,7 +255,7 @@ layout_corrector_schema = {
                                 "preposition" : {
                                     "type" : "string",
                                     "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner...",
-                                    "enum" : ["on", "in the corner"]
+                                    "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                 }
                             },
                             "required" : ["layout_element_id", "preposition"]
@@ -274,7 +274,7 @@ layout_corrector_schema = {
                                 "preposition" : {
                                     "type" : "string",
                                     "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk...",
-                                    "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
+                                    "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                 },
                                 "is_adjacent" : {
                                     "type" : "boolean",
@@ -320,7 +320,7 @@ layout_refiner_schema = {
                                         "preposition" : {
                                             "type" : "string",
                                             "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk...",
-                                            "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
+                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
                                         },
                                         "is_adjacent" : {
                                             "type" : "boolean",
