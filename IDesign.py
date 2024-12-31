@@ -59,7 +59,18 @@ class IDesign:
         designer_response = json.loads(groupchat.messages[-2]["content"])
         architect_response = json.loads(groupchat.messages[-1]["content"])
 
-        blocks_designer, blocks_architect = extract_list_from_json(designer_response), extract_list_from_json(architect_response)
+        print("\nOriginal Designer Response:")
+        print(json.dumps(designer_response, indent=2))
+        
+        # Expand designer's objects based on quantities
+        expanded_designer_response = self.expand_designer_objects(designer_response)
+        print("\nExpanded Designer Response:")
+        print(json.dumps(expanded_designer_response, indent=2))
+        
+        print("\nArchitect Response:")
+        print(json.dumps(architect_response, indent=2))
+
+        blocks_designer, blocks_architect = extract_list_from_json(expanded_designer_response), extract_list_from_json(architect_response)
         if len(blocks_designer) != len(blocks_architect):
             print("Lengths: ", len(blocks_designer), len(blocks_architect))
             raise ValueError("The number of blocks from the designer and architect should be the same! Please generate again.")
@@ -81,7 +92,7 @@ class IDesign:
                 message=f"""
                 Room layout elements in the room (in triple backquotes):
                 ```
-                ['south_wall', 'north_wall', 'west_wall', 'east_wall', 'middle of the floor', 'ceiling']
+                ['south_wall', 'north_wall', 'west_wall', 'east_wall', 'middle of the room', 'ceiling']
                 ```
                 Array of objects in the room (in triple backquotes):
                 ```
@@ -100,6 +111,24 @@ class IDesign:
                 json_data["objects_in_room"] += json.loads(chat_with_engineer.messages[-2]["content"])["objects_in_room"]
             
         self.scene_graph = json_data
+
+    def expand_designer_objects(self, response):
+        """
+        Expands designer's objects based on their quantities.
+        Example:
+        Input: {"Objects": [{"Object name": "chair", "Quantity": 2, ...}]}
+        Output: {"Objects": [{"Object name": "chair_1", ...}, {"Object name": "chair_2", ...}]}
+        """
+        expanded = {"Objects": []}
+        for obj in response["Objects"]:
+            quantity = obj.pop("Quantity", 1)
+            base_obj = obj.copy()
+            base_name = base_obj["Object name"]
+            for i in range(quantity):
+                new_obj = base_obj.copy()
+                new_obj["Object name"] = f"{base_name}_{i+1}"
+                expanded["Objects"].append(new_obj)
+        return expanded
 
     def correct_design(self, verbose=False, auto_prune=True):
         # Correct Spatial Conflicts

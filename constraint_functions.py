@@ -202,7 +202,7 @@ def get_right_of_constraint(obj_A, obj_B, is_adjacent, is_on_floor, room_dimensi
 
 def get_in_front_constraint(obj_A, obj_B, is_adjacent, is_on_floor, room_dimensions):
     """
-    obj_A is in front of obj_B
+    obj_A is in front obj_B
     """
     size_A = copy(obj_A["size_in_meters"])
     size_B = copy(obj_B["size_in_meters"])

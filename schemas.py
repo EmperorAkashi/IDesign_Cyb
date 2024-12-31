@@ -47,18 +47,18 @@ initial_schema = {
                             "properties" : {
                                 "room_layout_elements" : {
                                     "type" : "array",
-                                    "description" : "Scene Graph with the room layout elements such as walls, floor or ceiling. Ex. The desk is centered on the south wall, the chair is in the south-west corner...",
+                                    "description" : "Scene Graph with the room layout elements such as walls, floor or ceiling. Ex. The desk is on the south wall, the chair is in the south-west corner...",
                                     "items" : {
                                         "type" : "object",
                                         "properties" : {
                                             "layout_element_id" : {
                                                 "type" : "string",
                                                 "description" : "The id of the layout element that this object is connected to, ex. south_wall, west_wall, ceiling...",
-                                                "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "ceiling", "middle of the room"]
+                                                "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "middle of the room", "ceiling"]
                                             },
                                             "preposition" : {
                                                 "type" : "string",
-                                                "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner...",
+                                                "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
                                                 "enum" : ["on", "in the corner"]
                                             }
                                         },
@@ -67,7 +67,7 @@ initial_schema = {
                                 },
                                 "objects_in_room" : {
                                     "type" : "array",
-                                    "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front of the desk, the plant is right of the bookshelf...",
+                                    "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front the desk, the plant is right of the bookshelf...",
                                     "items" : {
                                         "type" : "object",
                                         "properties" : {
@@ -77,7 +77,7 @@ initial_schema = {
                                             },
                                             "preposition" : {
                                                 "type" : "string",
-                                                "description" : "The preposition that connects this object and the connected object. 'new_object_id' is 'preposition' 'object_id' . Ex. lamp_1 is left of desk_1, table_1 is behind the bed_1, rug_1 is under desk_1 (a rug is never 'on' or 'above' another object)...",
+                                                "description" : "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1...",
                                                 "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
                                             },
                                             "is_adjacent" : {
@@ -175,20 +175,20 @@ engineer_schema = """
                                         "layout_element_id" : {
                                             "type" : "string",
                                             "description" : "The id of the layout element that this object is connected to, ex. south_wall, west_wall, ceiling...",
-                                            "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "ceiling", "middle of the room"]
+                                            "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "middle of the room", "ceiling"]
                                         },
                                         "preposition" : {
                                             "type" : "string",
-                                            "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the south-west corner... For corners, both walls are included!",
+                                            "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
                                             "enum" : ["on", "in the corner"]
-                                        },
+                                        }
                                     },
                                     "required" : ["layout_element_id", "preposition"]
                                 }
                             },
                             "objects_in_room" : {
                                 "type" : "array",
-                                "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front of the desk, the plant is right of the bookshelf...",
+                                "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front the desk, the plant is right of the bookshelf...",
                                 "items" : {
                                     "type" : "object",
                                     "properties" : {
@@ -198,8 +198,8 @@ engineer_schema = """
                                         },
                                         "preposition" : {
                                             "type" : "string",
-                                            "description" : "The preposition that connects the new_object_id and object_id objects in the following format: "new_object_id" is "preposition" "object_id". Ex. lamp_1 is left of desk_1, table_1 is behind the bed_1, rug_1 is under desk_1...",
-                                            "enum" : ["on", "left of", "right of", "in front", "behind", "under"]
+                                            "description" : "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1...",
+                                            "enum" : ["on", "left of", "right of", "in front", "behind", "under", "above"]
                                         },
                                         "is_adjacent" : {
                                             "type" : "boolean",
@@ -250,7 +250,7 @@ layout_corrector_schema = {
                                 "layout_element_id" : {
                                     "type" : "string",
                                     "description" : "The id of the layout element that this object is connected to, ex. south_wall, west_wall, ceiling...",
-                                    "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "ceiling", "middle of the room"]
+                                    "enum" : ["south_wall", "north_wall", "west_wall", "east_wall", "middle of the room", "ceiling"]
                                 },
                                 "preposition" : {
                                     "type" : "string",
@@ -263,7 +263,7 @@ layout_corrector_schema = {
                     },
                     "objects_in_room" : {
                         "type" : "array",
-                        "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front of the desk, the plant is right of the bookshelf...",
+                        "description" : "Scene Graph with the other placed objects in the room. Ex. The chair is in front the desk, the plant is right of the bookshelf...",
                         "items" : {
                             "type" : "object",
                             "properties" : {

@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: IDesign_Cybever
+Version: 0.1.0
+Summary: Agent based indoor layout by following IDesign
+Author: Chen Lin, ...
+Author-email: chen@cybever.ai
+License: MIT
+Requires-Dist: pyautogen==0.2.35
+Requires-Dist: networkx==2.6.3
+Requires-Dist: jsonschema==4.3.2
+Requires-Dist: matplotlib
+Requires-Dist: opencv-python==4.8.1.78
+Requires-Dist: pydantic==1.10.2
+Requires-Dist: torch_redstone
+Requires-Dist: einops
+Requires-Dist: huggingface_hub

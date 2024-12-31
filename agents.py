@@ -15,6 +15,12 @@ config_list_gpt4_prev = autogen.config_list_from_json(
     },
 )
 
+# Set the API key from the first config
+import os
+with open("OAI_CONFIG_LIST.json", "r") as f:
+    config_list = json.load(f)
+    os.environ["OPENAI_API_KEY"] = config_list[0]["api_key"]
+
 # OAI_CONFIG_LIST.json is needed! Check the Autogen repo for more info!
 config_list_gpt4 = autogen.config_list_from_json(
     "OAI_CONFIG_LIST.json",
@@ -71,7 +77,7 @@ def is_termination_msg(content) -> bool:
 
 class JSONSchemaAgent(UserProxyAgent):
     def __init__(self, name : str, is_termination_msg):
-        super().__init__(name, is_termination_msg=is_termination_msg)
+        super().__init__(name, is_termination_msg=is_termination_msg, code_execution_config={"use_docker": False})
 
     def get_human_input(self, prompt: str) -> str:
         message = self.last_message()
@@ -107,7 +113,7 @@ def create_agents(no_of_objects : int):
         name="Admin",
         system_message = "A human admin.",
         is_termination_msg = is_termination_msg,
-        code_execution_config=False
+        code_execution_config={"use_docker": False}
     )
 
     json_schema_debugger = JSONSchemaAgent(
@@ -148,28 +154,27 @@ def create_agents(no_of_objects : int):
         Give explicit answers for EACH object on the following three aspects:
 
         Placement: 
-        Find a relative place for the object (ex. on the middle of the floor, in the north-west corner, on the east wall, right of the desk, on the bookshelf...).
-        For relative placement with other objects in the room use the prepositions "on", "left of", "right of", "in front", "behind", "under".
-        For relative placement with the room layout elements (walls, the middle of the room, ceiling) use the prepositions "on", "in the corner".
-        You are not allowed to use any prepositions different from the ones above!! 
-        Expliticly state the placement for each instance (ex. one is left of desk_1, one is on the south_wall)!!
+        Find a relative place for the object (ex. in the middle of the room, in the north-west corner, on the east wall, right of the desk, on the bookshelf...).
+        For relative placement with other objects in the room use ONLY these exact prepositions: "on", "left of", "right of", "in front", "behind", "under".
+        For relative placement with the room layout elements (walls, the middle of the room, ceiling) use ONLY these exact prepositions: "on", "in the corner".
+        You are not allowed to use any prepositions different from the ones above!! No "near", "next to", "in front of", etc.
+        Explicitly state the placement for each instance (ex. one is left of desk_1, one is on the south_wall)!!
 
         Proximity : 
         Proximity of this object to the relative placement objects:
         1. Adjacent : The object is physically contacting the other object or it is supported by the other object or they are touching or they are close to each other.
         2. Not Adjacent: The object is not physically contacting the other object and it is distant from the other object.
 
-
         Facing :
-        Think about which wall (west/east/north/south_wall) this object should be facing and explicitly state this (ex. one is facing the south_wall, one is facing the west_wall)!
+        Think about which wall (west/east/north/south_wall) this object should be facing and explicitly state this (ex. one is facing the south_wall, one is facing the east_wall).
 
-        Follow the JSON schema below:
+        IMPORTANT: 
+        1. When referring to the middle of the room, always use "middle of the room" and never "middle of the floor"!
+        2. Never use "near" or similar words - instead use precise prepositions like "left of", "right of", etc.
+        3. Use "in front" instead of "in front of"
+
+        You must follow the following JSON schema:
         {interior_architect_schema}
-
-        If the quantity of an object is greater than one, you have to find a place for each instance of this object separately, but give all this information in one list item!
-        This means the output should have one dictionary for each object, but all their instances (quantity higher than one) should be in the same dictionary!
-
-        JSON
         """
     )
 
@@ -197,4 +202,3 @@ def create_agents(no_of_objects : int):
     )
 
     return user_proxy, json_schema_debugger, interior_designer, interior_architect, engineer
-

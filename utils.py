@@ -266,7 +266,7 @@ def check_corner_relationships(G, scene_graph):
                     conflicts.append(conflict_string)
     return conflicts
 
-directional_preps = ["in front", "left of", "behind", "right of"]
+directional_preps = ["in front", "left of", "right of", "behind"]
 
 def check_corner_relationship_impossibilities(G, scene_graph):
     conflicts = []
@@ -395,7 +395,7 @@ def get_cluster_size(node, G, scene_graph):
     topological_order_reversed = list(reversed(list(nx.topological_sort(G))))
     topological_outgoing_nodes = [node for node in topological_order_reversed if node in outgoing_nodes]
     outgoing_e_sorted = sorted(outgoing_e, key=lambda x : topological_outgoing_nodes.index(x[1]))
-    size_constraint = {"left of" : 0.0, "right of" : 0.0, "behind" : 0.0, "in front" : 0.0}
+    size_constraint = {"left of" : 0.0, "right of" : 0.0, "behind" : 0.0, "in front" : 0.0, "on" : [0.0, 0.0]}
     children_objs = set()
     if len(outgoing_e_sorted) != 0:
         for edge in outgoing_e_sorted:
@@ -416,8 +416,7 @@ def get_cluster_size(node, G, scene_graph):
             # Find the side of the child object to add to the size constraint
             direction_check = lambda diff, prep: (diff % 180 == 0 and prep in ["left of", "right of"]) or (diff % 90 == 0 and prep in ["in front", "behind"])
             size_constraint_key = "length" if direction_check(rot_diff, prep) else "width"
-            side_to_add = ("left of", "right of") if size_constraint_key == "length" else ("in front", "behind")
-            size_constraint_value = edge_obj["size_in_meters"][size_constraint_key]
+            side_to_add = (("left of", "right of"),("in front", "behind"))  if size_constraint_key == "length" else (("in front", "behind"), ("left of", "right of"))
 
             # Retrieve the size of the cluster and the additional descendants of the child object
             edge_cluster_size, edge_children = get_cluster_size(edge[1], G, scene_graph)
@@ -425,7 +424,7 @@ def get_cluster_size(node, G, scene_graph):
 
             # Adjust the size constraint based on the preposition 
             constraints = ["left of", "right of", "in front", "behind"]
-            value_to_add = size_constraint_value + edge_cluster_size[side_to_add[0]] + edge_cluster_size[side_to_add[1]]
+            value_to_add = edge_obj["size_in_meters"][size_constraint_key] + edge_cluster_size[side_to_add[0]] + edge_cluster_size[side_to_add[1]]
             if prep in constraints:
                 if adj:
                     size_constraint[prep] = max(size_constraint[prep], value_to_add)
@@ -865,18 +864,19 @@ def get_depth(scene_graph):
     G = nx.DiGraph()
     # Create graph
     for obj in scene_graph:
-        if obj["new_object_id"] not in G.nodes():
-            G.add_node(obj["new_object_id"])
-        obj_scene_graph = obj["placement"]
-        for constraint in obj_scene_graph["room_layout_elements"]:
-            if constraint["layout_element_id"] not in G.nodes():
-                G.add_node(constraint["layout_element_id"])
-            G.add_edge(constraint["layout_element_id"], obj["new_object_id"])
-        for constraint in obj_scene_graph["objects_in_room"]:
-            if constraint["object_id"] not in G.nodes():
-                G.add_node(constraint["object_id"])
-            G.add_edge(constraint["object_id"], obj["new_object_id"])
-
+        if "placement" in obj.keys():   
+            if obj["new_object_id"] not in G.nodes():
+                G.add_node(obj["new_object_id"])
+            obj_scene_graph = obj["placement"]
+            for constraint in obj_scene_graph["room_layout_elements"]:
+                if constraint["layout_element_id"] not in G.nodes():
+                    G.add_node(constraint["layout_element_id"])
+                G.add_edge(constraint["layout_element_id"], obj["new_object_id"])
+            for constraint in obj_scene_graph["objects_in_room"]:
+                if constraint["object_id"] not in G.nodes():
+                    G.add_node(constraint["object_id"])
+                G.add_edge(constraint["object_id"], obj["new_object_id"])
+    
     # DFS Algo
     visited = set()
     prior_ids = ["south_wall", "north_wall", "east_wall", "west_wall", "middle of the room", "ceiling"]
@@ -1125,9 +1125,3 @@ def place_object(obj, scene_graph, room_dimensions, errors={}, verbose=False):
         errors = {}
         break 
     return errors
-
-
-
-
-
-
