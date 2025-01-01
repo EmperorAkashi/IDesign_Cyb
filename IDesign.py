@@ -188,9 +188,20 @@ class IDesign:
                     raise ValueError("Could not find valid JSON in correction content")
                     
             corr_obj = get_object_from_scene_graph(correction_json["corrected_object"]["new_object_id"], scene_graph)
+            
+            # Build graph to get current edges
+            G = build_graph(scene_graph)
+            
+            # Remove all existing edges for this object before applying new placement
+            for pred in list(G.predecessors(corr_obj["new_object_id"])):
+                G.remove_edge(pred, corr_obj["new_object_id"])
+            
+            # Apply the correction
             corr_obj["is_on_the_floor"] = correction_json["corrected_object"]["is_on_the_floor"]
             corr_obj["facing"] = correction_json["corrected_object"]["facing"]
             corr_obj["placement"] = correction_json["corrected_object"]["placement"]
+            
+            # Rebuild graph with new placement
             G = build_graph(scene_graph)
             conflicts = get_conflicts(G, scene_graph)
 
