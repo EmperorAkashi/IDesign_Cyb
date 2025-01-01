@@ -136,91 +136,60 @@ def build_graph(scene_graph):
 
 def find_room_layout_conflicts(G, scene_graph):
     conflicts = []
-
     topological_order = list(nx.topological_sort(G))
     node_layout = dict(G.nodes(data=True))
-    SUPPORT_PREPS = ["on", "under"]  # Support relationships (physical support)
-    POSITION_PREPS = ["in front", "left of", "right of", "behind"]  # Position relationships
-    CORNER_PREPS = ["in the corner"]  # Corner relationships
-
-    WALL_PREFERRED_OBJECTS = {"television", "bookshelf", "artwork", "wall_clock"}
-    FLOOR_REQUIRED_OBJECTS = {"sofa", "table", "chair", "plant_pot", "lamp"}
-
-    MULTI_PARENT_OBJECTS = {
-        "throw_pillows": {"support": True, "wall": True},  # Can be on furniture and against wall
-        "artwork": {"wall": True, "position": True},  # Must be on wall but can have position relative to other objects
-        "plant_pot": {"floor": True, "position": True}  # Must be on floor but can have position
-    }
-
-    def get_relationship_type(parent, prep, scene_graph):
-        """Determine the type of relationship based on parent and preposition"""
-        if parent in ROOM_LAYOUT_ELEMENTS:
-            return "wall" if parent != "middle of the room" else "position"
-        elif prep in SUPPORT_PREPS:
-            return "support"
-        elif prep in POSITION_PREPS:
-            return "position"
-        elif prep in CORNER_PREPS:
-            return "corner"
-        return "unknown"
-
-    def are_relationships_compatible(obj_type, rel_types):
-        """Check if an object can have this combination of relationship types"""
-        if obj_type in MULTI_PARENT_OBJECTS:
-            rules = MULTI_PARENT_OBJECTS[obj_type]
-            # Check if all relationship types are allowed
-            return all(rel_type in rules and rules[rel_type] for rel_type in rel_types)
-        # Default: objects can only have one parent relationship
-        return len(rel_types) <= 1
-
+    
+    # First pass: validate object IDs and collect all instances
+    object_instances = {}
+    for obj in scene_graph:
+        obj_id = obj["new_object_id"]
+        base_type = '_'.join(obj_id.split('_')[:-1]) if obj_id.split('_')[-1].isdigit() else obj_id
+        
+        if base_type not in object_instances:
+            object_instances[base_type] = []
+        object_instances[base_type].append(obj_id)
+    
+    # Check for duplicate base IDs without numbers
+    for base_type, instances in object_instances.items():
+        if len(instances) > 1:
+            expected = [f"{base_type}_{i+1}" for i in range(len(instances))]
+            actual = sorted(instances)
+            if actual != expected:
+                conflicts.append(f"Inconsistent numbering for {base_type} instances. Found {actual}, expected {expected}")
+    
+    # Second pass: check placement conflicts
     for node in topological_order:
         if node not in ROOM_LAYOUT_ELEMENTS:
             parents = list(G.predecessors(node))
-            base_type = get_object_base_type(node)
             
-            # Handle case with no parents - strict validation
             if not parents:
-                if base_type in WALL_PREFERRED_OBJECTS:
-                    conflicts.append(f"Object {node} ({base_type}) should typically be placed against a wall")
-                elif base_type in FLOOR_REQUIRED_OBJECTS:
-                    conflicts.append(f"Object {node} ({base_type}) must have proper floor placement")
-                node_layout[node] = "undefined"
+                node_layout[node] = "middle of the room"
                 continue
             
-            # Group relationships by type
-            relationship_types = {}
+            wall_parents = []
+            on_relationships = []
+            
             for parent in parents:
                 prep = G[parent][node]["weight"]["preposition"]
-                rel_type = get_relationship_type(parent, prep, scene_graph)
-                if rel_type not in relationship_types:
-                    relationship_types[rel_type] = []
-                relationship_types[rel_type].append((parent, prep))
+                if parent in ROOM_LAYOUT_ELEMENTS and parent != "middle of the room":
+                    wall_parents.append((parent, prep))
+                if prep == "on":
+                    on_relationships.append(parent)
             
-            # Validate relationships based on object type
-            if not are_relationships_compatible(base_type, set(relationship_types.keys())):
-                conflicts.append(
-                    f"Object {node} ({base_type}) has incompatible relationships: {list(relationship_types.keys())}. "
-                    f"Check if these relationships make sense for this type of object."
-                )
-            
-            # Validate specific relationship types
-            for rel_type, rels in relationship_types.items():
-                if rel_type == "support" and len(rels) > 1:
-                    conflicts.append(f"Object {node} cannot be supported by multiple objects: {[p for p,_ in rels]}")
-                elif rel_type == "wall" and len(rels) > 1 and "corner" not in relationship_types:
+            if len(wall_parents) > 1:
+                is_corner = any(prep == "in the corner" for _, prep in wall_parents)
+                if not is_corner:
                     conflicts.append(f"Object {node} cannot be attached to multiple walls unless it's in a corner")
             
-            # Update node layout based on primary relationship
-            primary_rel = None
-            for rel_type in ["corner", "wall", "support", "position"]:
-                if rel_type in relationship_types:
-                    primary_rel = relationship_types[rel_type][0]
-                    break
+            if len(on_relationships) > 1:
+                conflicts.append(f"Object {node} cannot be on multiple objects: {on_relationships}")
             
-            if primary_rel:
-                node_layout[node] = primary_rel[0]  # Use the parent from primary relationship
+            if wall_parents:
+                node_layout[node] = wall_parents[0][0]
+            elif on_relationships:
+                node_layout[node] = on_relationships[0]
             else:
-                node_layout[node] = "undefined"
+                node_layout[node] = "middle of the room"
     
     return conflicts
 
@@ -464,7 +433,7 @@ def get_cluster_size(node, G, scene_graph):
             # Find the side of the child object to add to the size constraint
             direction_check = lambda diff, prep: (diff % 180 == 0 and prep in ["left of", "right of"]) or (diff % 90 == 0 and prep in ["in front", "behind"])
             size_constraint_key = "length" if direction_check(rot_diff, prep) else "width"
-            side_to_add = ("left of", "right of")  if size_constraint_key == "length" else ("in front", "behind")
+            side_to_add = ("left of", "right of")  if size_constraint_key == "length" else (("in front", "behind"), ("left of", "right of"))
 
             # Retrieve the size of the cluster and the additional descendants of the child object
             edge_cluster_size, edge_children = get_cluster_size(edge[1], G, scene_graph)
@@ -472,7 +441,7 @@ def get_cluster_size(node, G, scene_graph):
 
             # Adjust the size constraint based on the preposition 
             constraints = ["left of", "right of", "in front", "behind"]
-            value_to_add = edge_obj["size_in_meters"][size_constraint_key] + edge_cluster_size[side_to_add[0]] + edge_cluster_size[side_to_add[1]]
+            value_to_add = edge_obj["size_in_meters"][size_constraint_key] + edge_cluster_size[side_to_add[0]] + edge_cluster_size[side_to_add[0][1]]
             if prep in constraints:
                 if adj:
                     size_constraint[prep] = max(size_constraint[prep], value_to_add)
