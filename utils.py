@@ -142,38 +142,57 @@ def find_room_layout_conflicts(G, scene_graph):
     for node in topological_order:
         if node not in ROOM_LAYOUT_ELEMENTS:
             parents = list(G.predecessors(node))
+            
+            # Handle case with no parents
+            if not parents:
+                node_layout[node] = "middle of the room"
+                continue
+            
             parents_room_layout = [node_layout[p] for p in parents]
+            
+            # Handle case with empty parent layout
+            if not parents_room_layout:
+                node_layout[node] = "middle of the room"
+                continue
+                
             different_parent_room_layout = False
-            for p in parents_room_layout[1:]:
-                if isinstance(p, list):
-                    if isinstance(parents_room_layout[0], list):
-                        different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-                    else:
-                        different_parent_room_layout = True if parents_room_layout[0] not in p else different_parent_room_layout
-                elif isinstance(p, str):
-                    if isinstance(parents_room_layout[0], list):
-                        different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
-                    else:
-                        different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-                elif isinstance(p, dict):
-                    if isinstance(parents_room_layout[0], list):
-                        different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
-                    else:
-                        different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-            if len(parents_room_layout) > 0 and different_parent_room_layout:
+            if len(parents_room_layout) > 1:
+                for p in parents_room_layout[1:]:
+                    if isinstance(p, list):
+                        if isinstance(parents_room_layout[0], list):
+                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
+                        else:
+                            different_parent_room_layout = True if parents_room_layout[0] not in p else different_parent_room_layout
+                    elif isinstance(p, str):
+                        if isinstance(parents_room_layout[0], list):
+                            different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
+                        else:
+                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
+                    elif isinstance(p, dict):
+                        if isinstance(parents_room_layout[0], list):
+                            different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
+                        else:
+                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
+
+            if different_parent_room_layout:
                 # This should be a spatial conflict, if the relationship isn't 'corner'
                 if not all([G[p][node]["weight"]["preposition"] == "in the corner" for p in parents]) and not any([p == "ceiling" for p in parents]):
                     conflict_string = f"The object {node} cannot have the parents {parents} at the same time! Eliminate one."
                     conflict_string += "\nObject to reposition: " + str(get_object_from_scene_graph(node, scene_graph))
                     conflicts.append(conflict_string)
                 else:
-                    # node_layout[node] = parents_room_layout
                     node_layout[node] = {}
             else:
-                node_layout[node] = parents_room_layout[0]
+                # If we have a valid parent layout, use it
+                if parents_room_layout and parents_room_layout[0] is not None:
+                    node_layout[node] = parents_room_layout[0]
+                else:
+                    # Fallback to middle of room if parent layout is invalid
+                    node_layout[node] = "middle of the room"
 
         if node in ROOM_LAYOUT_ELEMENTS:
             node_layout[node] = node
+            
     return conflicts
 
 def remove_unnecessary_edges(G):
