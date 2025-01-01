@@ -189,22 +189,39 @@ class IDesign:
                     
             corr_obj = get_object_from_scene_graph(correction_json["corrected_object"]["new_object_id"], scene_graph)
             
-            # Build graph to get current edges
-            G = build_graph(scene_graph)
+            # Debug: Print current state
+            print("\nBefore correction:")
+            print(f"Object to correct: {correction_json['corrected_object']['new_object_id']}")
             
-            # Remove all existing edges for this object before applying new placement
-            for pred in list(G.predecessors(corr_obj["new_object_id"])):
-                G.remove_edge(pred, corr_obj["new_object_id"])
+            # Remove the object from scene_graph
+            scene_graph = [obj for obj in scene_graph if obj["new_object_id"] != correction_json["corrected_object"]["new_object_id"]]
             
-            # Apply the correction
-            corr_obj["is_on_the_floor"] = correction_json["corrected_object"]["is_on_the_floor"]
-            corr_obj["facing"] = correction_json["corrected_object"]["facing"]
-            corr_obj["placement"] = correction_json["corrected_object"]["placement"]
+            # Create a new object with the corrections
+            new_obj = {
+                "new_object_id": correction_json["corrected_object"]["new_object_id"],
+                "is_on_the_floor": correction_json["corrected_object"]["is_on_the_floor"],
+                "facing": correction_json["corrected_object"]["facing"],
+                "placement": correction_json["corrected_object"]["placement"],
+                # Copy over other fields from original object
+                "style": corr_obj["style"],
+                "material": corr_obj["material"],
+                "size_in_meters": corr_obj["size_in_meters"]
+            }
             
-            # Rebuild graph with new placement
+            # Add the new object to scene graph
+            scene_graph.append(new_obj)
+            
+            print("\nAfter correction:")
+            print("New object placement:", new_obj["placement"])
+            
+            # Build graph with new object
             G = build_graph(scene_graph)
             conflicts = get_conflicts(G, scene_graph)
-
+            if conflicts:
+                print("\nConflicts still exist:")
+                for conflict in conflicts:
+                    print(conflict)
+                    
         if auto_prune:
             size_conflicts = get_size_conflicts(G, scene_graph, self.user_input, self.room_priors, verbose)
 
