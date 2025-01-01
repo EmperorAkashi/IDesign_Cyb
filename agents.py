@@ -103,25 +103,7 @@ class JSONSchemaAgent(UserProxyAgent):
         except Exception as e:
             feedback = str(e.message)
             
-            # Handle specific validation errors
-            if e.validator == "pattern":
-                if "new_object_id" in str(e.absolute_path):
-                    feedback = f"Invalid object ID format '{e.instance}'. Object IDs must be lowercase and end with a number (e.g. chair_1, table_2)."
-                elif "object_id" in str(e.absolute_path):
-                    feedback = f"Invalid referenced object ID '{e.instance}'. Object IDs must be lowercase and end with a number (e.g. chair_1, table_2)."
-            
-            elif e.validator == "enum":
-                if e.instance in json_obj_new_ids:
-                    feedback = f"Put the {e.instance} object under 'objects_in_room' instead of 'room_layout_elements'"
-                elif "preposition" in str(e.absolute_path):
-                    if "room_layout_elements" in str(e.absolute_path):
-                        feedback = f"Invalid room layout preposition '{e.instance}'. Must be one of: {preps_layout}"
-                    else:
-                        feedback = f"Invalid object preposition '{e.instance}'. Must be one of: {preps_objs}"
-                elif "layout_element_id" in str(e.absolute_path):
-                    feedback = f"Invalid room layout element '{e.instance}'. Must be one of: south_wall, north_wall, west_wall, east_wall, middle of the room, ceiling"
-            
-            elif e.validator == "minItems":
+            if e.validator == "minItems":
                 if "room_layout_elements" in str(e.absolute_path):
                     feedback = "Every object must have at least one room layout relationship (e.g. on south_wall, in the middle of room)"
             
@@ -181,15 +163,21 @@ def create_agents(no_of_objects : int):
         is_termination_msg = is_termination_msg,
         system_message = f""" Interior Architect. Your role is to analyze the user preference, think about where the optimal
         placement for each object would be that the Interior Designer suggests and find a place for this object in the room and give a detailed description of it.
-        If the quantity of an object is greater than one, you have to find a place for each instance of this object separately!, but give all this information in one list item!
-        Give explicit answers for EACH object on the following three aspects:
+
+        For objects with quantity > 1, you MUST handle each instance separately and give them unique IDs. For example:
+        If the Interior Designer suggests "2 chairs", you must:
+        1. Create unique IDs: chair_1 and chair_2
+        2. Place each chair separately with its own placement, proximity, and facing information
+        3. Make sure each instance has a distinct and logical placement (e.g., don't put both chairs in the exact same spot)
+        4. Reference the specific ID when describing relationships (e.g., "chair_1 is left of desk_1, chair_2 is right of desk_1")
+
+        Give explicit answers for EACH object instance on these aspects:
 
         Placement: 
         Find a relative place for the object (ex. in the middle of the room, in the north-west corner, on the east wall, right of the desk, on the bookshelf...).
-        For relative placement with other objects in the room use ONLY these exact prepositions: "on", "left of", "right of", "in front", "behind", "under".
+        For relative placement with other objects in the room use ONLY these exact prepositions: "on", "left of", "right of", "in front", "behind", "under", "above".
         For relative placement with the room layout elements (walls, the middle of the room, ceiling) use ONLY these exact prepositions: "on", "in the corner".
         You are not allowed to use any prepositions different from the ones above!! No "near", "next to", "in front of", etc.
-        Explicitly state the placement for each instance (ex. one is left of desk_1, one is on the south_wall)!!
 
         Proximity : 
         Proximity of this object to the relative placement objects:
@@ -197,12 +185,13 @@ def create_agents(no_of_objects : int):
         2. Not Adjacent: The object is not physically contacting the other object and it is distant from the other object.
 
         Facing :
-        Think about which wall (west/east/north/south_wall) this object should be facing and explicitly state this (ex. one is facing the south_wall, one is facing the east_wall).
+        Think about which wall (west/east/north/south_wall) this object should be facing and explicitly state this for each instance.
 
         IMPORTANT: 
         1. When referring to the middle of the room, always use "middle of the room" and never "middle of the floor"!
         2. Never use "near" or similar words - instead use precise prepositions like "left of", "right of", etc.
         3. Use "in front" instead of "in front of"
+        4. For multiple instances of the same object type, always give each instance a unique ID and placement
 
         You must follow the following JSON schema:
         {interior_architect_schema}

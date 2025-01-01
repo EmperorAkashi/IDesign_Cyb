@@ -119,8 +119,7 @@ interior_architect_schema = """
                 "properties": {
                     "Object name": {
                         "type": "string",
-                        "description": "The id of the object, e.g. chair_1, table_1, bed_1, etc. Must be unique across all placements.",
-                        "pattern": "^[a-z_]+[0-9]+$"
+                        "description": "The id of the object, e.g. chair_1, table_1, bed_1, etc. Must be unique across all placements."
                     },
                     "Placement": {
                         "type": "string",
@@ -133,8 +132,7 @@ interior_architect_schema = """
                     },
                     "Facing": {
                         "type": "string",
-                        "description": "The wall that this object is facing",
-                        "enum": ["south_wall", "north_wall", "west_wall", "east_wall"]
+                        "description": "The wall that this object is facing"
                     }
                 },
                 "required": ["Object name", "Placement", "Proximity", "Facing"]
@@ -155,8 +153,7 @@ engineer_schema = """
             "properties": {
                 "new_object_id": {
                     "type": "string",
-                    "description": "The lower-case id of the object, e.g. chair_1, table_1, bed_1, etc.",
-                    "pattern": "^[a-z_]+[0-9]+$"
+                    "description": "The lower-case id of the object, e.g. chair_1, table_1, bed_1, etc."
                 },
                 "style": {
                     "type": "string",
@@ -187,8 +184,7 @@ engineer_schema = """
                 },
                 "facing": {
                     "type": "string",
-                    "description": "The id of the object is this object facing, this has to be an object_id! Ex. west_wall, bookshelf_1, desk_1...",
-                    "enum": ["south_wall", "north_wall", "west_wall", "east_wall"]
+                    "description": "The id of the object is this object facing, this has to be an object_id! Ex. west_wall, bookshelf_1, desk_1..."
                 },
                 "placement": {
                     "type": "object",
@@ -208,8 +204,7 @@ engineer_schema = """
                                     },
                                     "preposition": {
                                         "type": "string",
-                                        "description": "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!",
-                                        "enum": ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
+                                        "description": "The preposition that connects this object and the layout element, ex. on the west wall, in the corner... For corners, both walls are included!"
                                     }
                                 },
                                 "required": ["layout_element_id", "preposition"]
@@ -223,13 +218,11 @@ engineer_schema = """
                                 "properties": {
                                     "object_id": {
                                         "type": "string",
-                                        "description": "The id of the object that this object is connected to, ex. bookshelf_1, plant_1...",
-                                        "pattern": "^[a-z_]+[0-9]+$"
+                                        "description": "The id of the object that this object is connected to, ex. bookshelf_1, plant_1..."
                                     },
                                     "preposition": {
                                         "type": "string",
-                                        "description": "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1...",
-                                        "enum": ["on", "left of", "right of", "in front", "behind", "under", "above"]
+                                        "description": "The preposition that connects the new_object_id and object_id objects in the following format: 'new_object_id' is 'preposition' 'object_id'. Ex. lamp_1 is left of desk_1, table_1 is behind bed_1, rug_1 is under desk_1..."
                                     },
                                     "is_adjacent": {
                                         "type": "boolean",
@@ -284,8 +277,7 @@ layout_corrector_schema = {
                                 },
                                 "preposition" : {
                                     "type" : "string",
-                                    "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner...",
-                                    "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
+                                    "description" : "The preposition that connects this object and the layout element, ex. on the west wall, in the corner..."
                                 }
                             },
                             "required" : ["layout_element_id", "preposition"]
@@ -303,8 +295,7 @@ layout_corrector_schema = {
                                 },
                                 "preposition" : {
                                     "type" : "string",
-                                    "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk...",
-                                    "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
+                                    "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk..."
                                 },
                                 "is_adjacent" : {
                                     "type" : "boolean",
@@ -349,8 +340,7 @@ layout_refiner_schema = {
                                         },
                                         "preposition" : {
                                             "type" : "string",
-                                            "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk...",
-                                            "enum" : ["on", "in the corner", "in the middle of", "in the middle", "left of", "right of", "in front", "behind", "under", "above"]
+                                            "description" : "The preposition that connects this object and the connected object, ex. left of the desk, behind the plant, the rug is under the desk..."
                                         },
                                         "is_adjacent" : {
                                             "type" : "boolean",
