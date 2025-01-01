@@ -162,9 +162,31 @@ class IDesign:
                 """,
             )
             correction = groupchat.messages[-2]
-            pattern = r'```json\s*([^`]+)\s*```' # Match the json object
-            match = re.search(pattern, correction["content"], re.DOTALL).group(1)
-            correction_json = json.loads(match)
+            content = correction["content"]
+            
+            # Try to extract JSON from code block first
+            pattern = r'```json\s*([^`]+)\s*```'
+            match = re.search(pattern, content, re.DOTALL)
+            
+            if match:
+                # JSON was in code block
+                json_str = match.group(1)
+            else:
+                # JSON was not in code block, try to parse the content directly
+                json_str = content
+            
+            try:
+                correction_json = json.loads(json_str)
+            except json.JSONDecodeError:
+                # If direct parsing fails, try to find JSON-like content
+                pattern = r'\{[^}]+\}'
+                match = re.search(pattern, content, re.DOTALL)
+                if match:
+                    json_str = match.group(0)
+                    correction_json = json.loads(json_str)
+                else:
+                    raise ValueError("Could not find valid JSON in correction content")
+                    
             corr_obj = get_object_from_scene_graph(correction_json["corrected_object"]["new_object_id"], scene_graph)
             corr_obj["is_on_the_floor"] = correction_json["corrected_object"]["is_on_the_floor"]
             corr_obj["facing"] = correction_json["corrected_object"]["facing"]
