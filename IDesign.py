@@ -189,32 +189,12 @@ class IDesign:
                     
             corr_obj = get_object_from_scene_graph(correction_json["corrected_object"]["new_object_id"], scene_graph)
             
-            # Debug: Print current state
-            print("\nBefore correction:")
-            print(f"Object to correct: {correction_json['corrected_object']['new_object_id']}")
+            # Apply the correction
+            corr_obj["is_on_the_floor"] = correction_json["corrected_object"]["is_on_the_floor"]
+            corr_obj["facing"] = correction_json["corrected_object"]["facing"]
+            corr_obj["placement"] = correction_json["corrected_object"]["placement"]
             
-            # Remove the object from scene_graph
-            scene_graph = [obj for obj in scene_graph if obj["new_object_id"] != correction_json["corrected_object"]["new_object_id"]]
-            
-            # Create a new object with the corrections
-            new_obj = {
-                "new_object_id": correction_json["corrected_object"]["new_object_id"],
-                "is_on_the_floor": correction_json["corrected_object"]["is_on_the_floor"],
-                "facing": correction_json["corrected_object"]["facing"],
-                "placement": correction_json["corrected_object"]["placement"],
-                # Copy over other fields from original object
-                "style": corr_obj["style"],
-                "material": corr_obj["material"],
-                "size_in_meters": corr_obj["size_in_meters"]
-            }
-            
-            # Add the new object to scene graph
-            scene_graph.append(new_obj)
-            
-            print("\nAfter correction:")
-            print("New object placement:", new_obj["placement"])
-            
-            # Build graph with new object
+            # Build graph with new placement
             G = build_graph(scene_graph)
             conflicts = get_conflicts(G, scene_graph)
             if conflicts:

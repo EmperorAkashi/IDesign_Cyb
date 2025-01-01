@@ -139,60 +139,89 @@ def find_room_layout_conflicts(G, scene_graph):
 
     topological_order = list(nx.topological_sort(G))
     node_layout = dict(G.nodes(data=True))
+    SUPPORT_PREPS = ["on", "under"]  # Support relationships (physical support)
+    POSITION_PREPS = ["in front", "left of", "right of", "behind"]  # Position relationships
+    CORNER_PREPS = ["in the corner"]  # Corner relationships
+
+    WALL_PREFERRED_OBJECTS = {"television", "bookshelf", "artwork", "wall_clock"}
+    FLOOR_REQUIRED_OBJECTS = {"sofa", "table", "chair", "plant_pot", "lamp"}
+
+    MULTI_PARENT_OBJECTS = {
+        "throw_pillows": {"support": True, "wall": True},  # Can be on furniture and against wall
+        "artwork": {"wall": True, "position": True},  # Must be on wall but can have position relative to other objects
+        "plant_pot": {"floor": True, "position": True}  # Must be on floor but can have position
+    }
+
+    def get_relationship_type(parent, prep, scene_graph):
+        """Determine the type of relationship based on parent and preposition"""
+        if parent in ROOM_LAYOUT_ELEMENTS:
+            return "wall" if parent != "middle of the room" else "position"
+        elif prep in SUPPORT_PREPS:
+            return "support"
+        elif prep in POSITION_PREPS:
+            return "position"
+        elif prep in CORNER_PREPS:
+            return "corner"
+        return "unknown"
+
+    def are_relationships_compatible(obj_type, rel_types):
+        """Check if an object can have this combination of relationship types"""
+        if obj_type in MULTI_PARENT_OBJECTS:
+            rules = MULTI_PARENT_OBJECTS[obj_type]
+            # Check if all relationship types are allowed
+            return all(rel_type in rules and rules[rel_type] for rel_type in rel_types)
+        # Default: objects can only have one parent relationship
+        return len(rel_types) <= 1
+
     for node in topological_order:
         if node not in ROOM_LAYOUT_ELEMENTS:
             parents = list(G.predecessors(node))
+            base_type = get_object_base_type(node)
             
-            # Handle case with no parents
+            # Handle case with no parents - strict validation
             if not parents:
-                node_layout[node] = "middle of the room"
+                if base_type in WALL_PREFERRED_OBJECTS:
+                    conflicts.append(f"Object {node} ({base_type}) should typically be placed against a wall")
+                elif base_type in FLOOR_REQUIRED_OBJECTS:
+                    conflicts.append(f"Object {node} ({base_type}) must have proper floor placement")
+                node_layout[node] = "undefined"
                 continue
             
-            parents_room_layout = [node_layout[p] for p in parents]
+            # Group relationships by type
+            relationship_types = {}
+            for parent in parents:
+                prep = G[parent][node]["weight"]["preposition"]
+                rel_type = get_relationship_type(parent, prep, scene_graph)
+                if rel_type not in relationship_types:
+                    relationship_types[rel_type] = []
+                relationship_types[rel_type].append((parent, prep))
             
-            # Handle case with empty parent layout
-            if not parents_room_layout:
-                node_layout[node] = "middle of the room"
-                continue
-                
-            different_parent_room_layout = False
-            if len(parents_room_layout) > 1:
-                for p in parents_room_layout[1:]:
-                    if isinstance(p, list):
-                        if isinstance(parents_room_layout[0], list):
-                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-                        else:
-                            different_parent_room_layout = True if parents_room_layout[0] not in p else different_parent_room_layout
-                    elif isinstance(p, str):
-                        if isinstance(parents_room_layout[0], list):
-                            different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
-                        else:
-                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-                    elif isinstance(p, dict):
-                        if isinstance(parents_room_layout[0], list):
-                            different_parent_room_layout = True if p not in parents_room_layout[0] else different_parent_room_layout
-                        else:
-                            different_parent_room_layout = True if p != parents_room_layout[0] else different_parent_room_layout
-
-            if different_parent_room_layout:
-                # This should be a spatial conflict, if the relationship isn't 'corner'
-                if not all([G[p][node]["weight"]["preposition"] == "in the corner" for p in parents]) and not any([p == "ceiling" for p in parents]):
-                    conflict_string = f"The object {node} cannot have the parents {parents} at the same time! Eliminate one."
-                    conflict_string += "\nObject to reposition: " + str(get_object_from_scene_graph(node, scene_graph))
-                    conflicts.append(conflict_string)
-                else:
-                    node_layout[node] = {}
+            # Validate relationships based on object type
+            if not are_relationships_compatible(base_type, set(relationship_types.keys())):
+                conflicts.append(
+                    f"Object {node} ({base_type}) has incompatible relationships: {list(relationship_types.keys())}. "
+                    f"Check if these relationships make sense for this type of object."
+                )
+            
+            # Validate specific relationship types
+            for rel_type, rels in relationship_types.items():
+                if rel_type == "support" and len(rels) > 1:
+                    conflicts.append(f"Object {node} cannot be supported by multiple objects: {[p for p,_ in rels]}")
+                elif rel_type == "wall" and len(rels) > 1 and "corner" not in relationship_types:
+                    conflicts.append(f"Object {node} cannot be attached to multiple walls unless it's in a corner")
+            
+            # Update node layout based on primary relationship
+            primary_rel = None
+            for rel_type in ["corner", "wall", "support", "position"]:
+                if rel_type in relationship_types:
+                    primary_rel = relationship_types[rel_type][0]
+                    break
+            
+            if primary_rel:
+                node_layout[node] = primary_rel[0]  # Use the parent from primary relationship
             else:
-                # If we have a valid parent layout, use it
-                if parents_room_layout and parents_room_layout[0] is not None:
-                    node_layout[node] = parents_room_layout[0]
-                else:
-                    # Fallback to middle of room if parent layout is invalid
-                    node_layout[node] = "middle of the room"
-
-        if node in ROOM_LAYOUT_ELEMENTS:
-            node_layout[node] = node
-            
+                node_layout[node] = "undefined"
+    
     return conflicts
 
 def remove_unnecessary_edges(G):
@@ -1144,3 +1173,7 @@ def place_object(obj, scene_graph, room_dimensions, errors={}, verbose=False):
         errors = {}
         break 
     return errors
+
+def get_object_base_type(obj_id):
+    # This function is assumed to be implemented elsewhere
+    pass
