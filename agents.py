@@ -84,25 +84,56 @@ class JSONSchemaAgent(UserProxyAgent):
         preps_layout = ['in front', 'on', 'in the corner', 'in the middle of']
         preps_objs = ['on', 'left of', 'right of', 'in front', 'behind', 'under', 'above']
 
-        json_obj_new = json.loads(message["content"])
+        try:
+            json_obj_new = json.loads(message["content"])
+        except json.JSONDecodeError:
+            return "Invalid JSON format. Please check your JSON syntax."
+
         try:
             json_obj_new_ids = [item["new_object_id"] for item in json_obj_new["objects_in_room"]]
-        except:
+        except KeyError:
             return "Use 'new_object_id' instead of 'object_id'!"
+        except TypeError:
+            return "Invalid objects_in_room format. Must be an array of objects."
 
-        is_success  = False
+        is_success = False
         try:
             validate(instance=json_obj_new, schema=initial_schema)
             is_success = True
         except Exception as e:
             feedback = str(e.message)
-            if e.validator == "enum":
+            
+            # Handle specific validation errors
+            if e.validator == "pattern":
+                if "new_object_id" in str(e.absolute_path):
+                    feedback = f"Invalid object ID format '{e.instance}'. Object IDs must be lowercase and end with a number (e.g. chair_1, table_2)."
+                elif "object_id" in str(e.absolute_path):
+                    feedback = f"Invalid referenced object ID '{e.instance}'. Object IDs must be lowercase and end with a number (e.g. chair_1, table_2)."
+            
+            elif e.validator == "enum":
                 if e.instance in json_obj_new_ids:
-                    feedback += f" Put the {e.instance} object under 'objects_in_room' instead of 'room_layout_elements' and delete the {e.instance} object under 'room_layout_elements'"
-                elif str(preps_objs) in e.message:
-                    feedback += f"Change the preposition {e.instance} to something suitable with the intended positioning from the list {preps_objs}"
-                elif str(preps_objs) in e.message:
-                    feedback += f"Change the preposition {e.instance} to something suitable with the intended positioning from the list {preps_layout}"
+                    feedback = f"Put the {e.instance} object under 'objects_in_room' instead of 'room_layout_elements'"
+                elif "preposition" in str(e.absolute_path):
+                    if "room_layout_elements" in str(e.absolute_path):
+                        feedback = f"Invalid room layout preposition '{e.instance}'. Must be one of: {preps_layout}"
+                    else:
+                        feedback = f"Invalid object preposition '{e.instance}'. Must be one of: {preps_objs}"
+                elif "layout_element_id" in str(e.absolute_path):
+                    feedback = f"Invalid room layout element '{e.instance}'. Must be one of: south_wall, north_wall, west_wall, east_wall, middle of the room, ceiling"
+            
+            elif e.validator == "minItems":
+                if "room_layout_elements" in str(e.absolute_path):
+                    feedback = "Every object must have at least one room layout relationship (e.g. on south_wall, in the middle of room)"
+            
+            elif e.validator == "uniqueItems":
+                if "objects_in_room" in str(e.absolute_path):
+                    feedback = "Duplicate object IDs found. Each object must have a unique ID."
+
+            elif e.validator == "required":
+                if "room_layout_elements" in str(e.absolute_path):
+                    feedback = "Missing required room layout relationships. Every object must specify its position relative to the room."
+                elif "is_adjacent" in str(e.absolute_path):
+                    feedback = "Missing is_adjacent field. Must specify whether objects are physically touching/close or not."
 
         if is_success:
             return "SUCCESS"
@@ -184,25 +215,27 @@ def create_agents(no_of_objects : int):
         human_input_mode = "NEVER",
         is_termination_msg = is_termination_msg,
         system_message = f""" Engineer. You listen to the input by the Admin and create a JSON file.
-        Every time when the Admin outputs objects to be in the room you will save ALL of them in the given schema!
-        For the scene graph, you can use the ids for the objects that are already in the room, but only output the objects to be placed!
-        If an object has a quantity higher than one, save each instance of this object separately!!
-        If the Json_schema_debugger reports a validation error about the JSON schema, solve the error in a way that spatially makes sense!
+        The Admin will provide:
+        1. A list of room layout elements
+        2. A list of existing objects in the room (can be empty)
+        3. A new object to be placed, with its placement information
 
-        IMPORTANT: The inputted "Placement" key should be used for the "placement" key in the JSON object follow exatly the prepositions stated, 
-        do not use the information in "Facing" key for the room layout elements!!!
-
-        IMPORTANT: For object quantities greater than one, the "placement" key gives separately the relative placement of each instance of that object in the room
-        make the distinction accordingly!
-
+        Your job is to create a JSON object that combines the designer's object details with the architect's placement details.
+        The object IDs have already been expanded (e.g. "armchair_1", "armchair_2"), so use these exact IDs.
+        
         CRITICAL REQUIREMENTS:
         1. EVERY object MUST have at least one room_layout_element in its placement. This defines where the object is in relation to the room (walls, middle, corners).
         2. If an object is placed relative to another object (in objects_in_room), it still MUST specify its room position in room_layout_elements.
         3. Never leave room_layout_elements as an empty array - always specify at least one room layout relationship.
+        4. Use EXACTLY the object IDs provided in the input - do not modify them.
+        5. The "placement" field must include both room_layout_elements and objects_in_room based on the architect's placement description.
+        6. All object IDs must be lowercase and end with a number (e.g. chair_1, table_2).
+        7. When an object is placed relative to another object, you must specify whether they are adjacent using is_adjacent:
+           - Adjacent: Objects are physically touching or very close (e.g. "chair_1 is on desk_1", "plant_1 is right of desk_1")
+           - Not Adjacent: Objects are not touching and have space between them
 
         Use only the following JSON Schema to save the JSON object:
         {engineer_schema}
-
         """
     )
 
